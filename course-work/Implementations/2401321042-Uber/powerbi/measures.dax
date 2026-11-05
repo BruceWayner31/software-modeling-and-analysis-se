@@ -1,0 +1,78 @@
+// =====================================================================
+// Uber – DAX мерки за Power BI отчета (модел върху UberDW)
+// Създайте ги в Power BI Desktop: Modeling → New measure → поставете реда.
+// Препоръчително: създайте празна таблица "_Measures" и ги сложете там.
+// =====================================================================
+
+// ---------- Курсове (FactTrips) ----------
+Total Trips = SUM ( FactTrips[TripCount] )
+
+Completed Trips = CALCULATE ( [Total Trips], FactTrips[IsCompleted] = TRUE () )
+
+Cancelled Trips = CALCULATE ( [Total Trips], FactTrips[IsCancelled] = TRUE () )
+
+Cancellation Rate % = DIVIDE ( [Cancelled Trips], [Total Trips] )
+
+Gross Bookings = SUM ( FactTrips[Fare] )
+
+Avg Fare = AVERAGE ( FactTrips[Fare] )
+
+Avg Distance km = AVERAGE ( FactTrips[DistanceKm] )
+
+Avg Duration min = AVERAGE ( FactTrips[DurationMin] )
+
+Avg Wait min = AVERAGE ( FactTrips[WaitTimeMin] )
+
+Total Discounts = SUM ( FactTrips[DiscountAmount] )
+
+Promo Usage % =
+DIVIDE (
+    CALCULATE ( [Completed Trips], FactTrips[PromoCodeKey] <> -1 ),
+    [Completed Trips]
+)
+
+Surge Trips % =
+DIVIDE (
+    CALCULATE ( [Completed Trips], FactTrips[SurgeMultiplier] > 1 ),
+    [Completed Trips]
+)
+
+// ---------- Плащания (FactPayments) ----------
+Net Revenue =
+CALCULATE ( SUM ( FactPayments[FareAmount] ), FactPayments[IsRefunded] = FALSE () )
+
+Platform Revenue =
+CALCULATE ( SUM ( FactPayments[PlatformFee] ), FactPayments[IsRefunded] = FALSE () )
+
+Driver Earnings =
+CALCULATE ( SUM ( FactPayments[DriverEarnings] ), FactPayments[IsRefunded] = FALSE () )
+
+Total Tips = SUM ( FactPayments[TipAmount] )
+
+Refunded Amount =
+CALCULATE ( SUM ( FactPayments[FareAmount] ), FactPayments[IsRefunded] = TRUE () )
+
+Cashless Share % =
+DIVIDE (
+    CALCULATE ( [Net Revenue], DimPaymentMethod[IsCashless] = TRUE () ),
+    [Net Revenue]
+)
+
+// изискват DimDate да е маркирана като Date table (Table tools → Mark as date table → FullDate)
+Net Revenue YTD = TOTALYTD ( [Net Revenue], DimDate[FullDate] )
+
+Net Revenue PM = CALCULATE ( [Net Revenue], DATEADD ( DimDate[FullDate], -1, MONTH ) )
+
+Net Revenue MoM % = DIVIDE ( [Net Revenue] - [Net Revenue PM], [Net Revenue PM] )
+
+// ---------- Оценки (FactRatings) ----------
+Avg Driver Rating = AVERAGE ( FactRatings[DriverScore] )
+
+Avg Rider Rating = AVERAGE ( FactRatings[RiderScore] )
+
+Ratings Count = COUNTROWS ( FactRatings )
+
+5-Star Share % =
+DIVIDE ( CALCULATE ( [Ratings Count], FactRatings[DriverScore] = 5 ), [Ratings Count] )
+
+Low Ratings (1-2) = CALCULATE ( [Ratings Count], FactRatings[DriverScore] <= 2 )
